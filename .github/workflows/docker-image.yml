@@ -1,19 +1,55 @@
-name: Docker Image CI
-
+name: build-frontend
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-
-  build:
-
+  build-frontend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-
     steps:
     - uses: actions/checkout@v3
+    - uses: docker/setup-buildx-action@v2
     - name: Build the Docker image
-      run: sudo docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      working-directory: ./frontend
+      run: DOCKER_BUILDKIT=1 docker build --output type=tar,dest=frontend_webserver_docker_image.tar .
+    - uses: actions/upload-artifact@v3
+      with:
+        name: frontend_webserver_docker_image.tar
+        path: frontend/frontend_webserver_docker_image.tar
+        
+  deploy-frontend:
+    if: ${{ startsWith(github.ref, 'refs/heads/main') }}
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download frontend webserver Docker image
+        uses: actions/download-artifact@v1
+        with:
+          name: frontend_webserver_docker_image.tar
+
+      - name: Configure AWS login
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to AWS ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Upload Docker image to AWS ECR
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: frontend_webserver
+        run: |
+          docker import frontend_webserver_docker_image.tar/frontend_webserver_docker_image.tar frontend_webserver
+          docker tag frontend_webserver 186932938567.dkr.ecr.us-east-1.amazonaws.com/frontend_webserver
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+  
