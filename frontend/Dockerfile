@@ -10,7 +10,7 @@ COPY ./ /frontend_source
 # run the following commands to install dependencies, build project
 # these run *inside* the build-stage container
 RUN npm install
-RUN npm run build
+RUN sudo npm run build
 
 # create a new container based off nginx
 FROM nginx:1.23
