@@ -13,6 +13,8 @@ terraform {
 # configures the AWS provider
 provider "aws" {
   region = "us-east-1"
+  access_key = "AKIAY3VRS3BXHKEMX6TK"
+  secret_key = "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"
 }
 
 # define an ECS cluster for emergencyqueue
