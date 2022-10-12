@@ -16,7 +16,7 @@ provider "aws" {
 }
 
 # define an ECS cluster for emergencyqueue
-resource "aws_ecs_cluster" "emergencyqueue" {
+resource "aws_ecs_cluster" "emergencyqueue_cluster" {
   name = "emergencyqueue_cluster"
 }
 
